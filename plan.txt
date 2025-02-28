@@ -1,0 +1,216 @@
+[2024-12-20 15:54:02]:[LOG] here I will discuss some long term planning. Now I need to revise where we are:
+classes::
+
+[2024-12-21 05:13:47]:[:LOG] current issues and bugs:
+- selectiong the balls to apply action on them isn't very random, it chose to move the same ball over and over, leaving all freed balls at player base,which bring the next bug
+- many balls has same position, because hit logic isnt applied yet
+- wining logic isnt applied yet, how a ball enters the safeCells
+
+
+[2024-12-21 16:33:13] bugs:
+- filteration:
+    - BURN cards not remvoed compeltly ,some sill even the player has other playable actions
+
+- after choosing action, when selecting a ball to apply action to it:
+    - I can choose a prisoned ball with pos -10
+    - moveAny: choosing from all balls in 2d, expected a tuble maybe
+
+- bugs 
+    - moveAny didnt take effect it moved the turn without printing hte board neither removing a card
+    - update distance after each play not for after all players played
+
+
+[2025-01-02 18:26:31]
+todya will do a lot of work on the project:-
+- all possible actions. all possible action must be list in 1D list, so how the player gets his allowed actions?:
+    - player hand : for every card , a set of actions will be appended
+    - player baslls positions: for every action , and ball , an action will be appended
+
+    so loop all balls for 
+
+[2025-01-04 02:02:57] 
+made big changes after I almost gave up, the the complexity of dealing with all bugs at once was overwhelming. but I fixed the major bugs in filiteration and starting with the winning logic moves    
+
+bugs :
+- move any should bypass the wingate obsticle only if the the actor is in the opponent team
+- move any can move negtive positoned numbers
+- uodate the tiny obstilce map for the negetive positoned balls
+    - error after moving a ball withing the safeCell ouside its limit
+
+
+- find a way to block the movement byeond the player wingate, filiter out any actions that have offset more than can be moved, already done it but not working for some reason
+
+mainly the obsticle-based bugs remain, then some win checking then start with the RL env set up on top of the simulator engine    
+
+[2025-01-04 19:35:37] 
+- fix the unplayable moves that raises exceptions, to be filtered out from the start, so that the player cant play them to start with
+- add a colisionHandler
+- add feature ,random policy
+
+
+[2025-01-06 01:49:32]
+testing and perforemence optimiztion is the new chapter
+
+stress test result:
+using ranom agents, and collecting these errors:
+- balls can enter their friends safeCells
+- ValueError: Cannot move beyond the distance to the nearest obstacle.
+- balls for one player on board = 4, and yet he has some in the safeCell
+- move_any bypassing wingate by Enemy was filiterd out
+
+- the forth player, when moves in the safeCell .create deblicates
+
+
+[2025-01-07 16:27:33]
+- ERRORS exception at : flex_move > move_ball lines[402,415,392]
+
+2025-01-08 21:08:01
+the errors just keep coming, just fixed last thing or what I assumed last thing to find out that finding a ball by its pos if its inside SafeCell can cause a lot of issues ,because the pos inside safeCell are the same not uniqe like in board
+
+2025-01-09 02:13:20
+made huge progress ,finished filiterd falty move_any actions. tunred out I was passing the wrong ball,uinsg get_ball_indciies, finshed checking the win conditions, finshed after player hasWon by connecting him to his teamMate ,about the get_ball it still has one issue that cause an error, when the player wins ,then the get_ball_indicies beeing called the ball is not found 
+
+
+2025-01-10 08:11:03
+the plan can't be found , in flex_move > move_ball > finlize_move ,pos 72 ,his own ball
+
+
+2025-01-10 18:34:26
+in-depth testing, now I play the game and do actual testing for the rules
+
+bugs:
+finalize_move:
+- super Move doesnt take all balls in its way
+filiteration:
+- removed:
+
+    - backward to get inside win_gate 1,4,3 MOVE, at first I jailBreaked ,then I can't go back neither play  3
+
+    - move_any, when player has no balls, even swap doesnt work , the maybe because it thinks no freeBalls
+    - 13 when I can jailbreak using it, it even  has 14 distance to obsticle
+    - flex_move from when ball_1 at base and ball_2 ob=4 
+- added 
+    - {
+    2: MOVE(8) Ball@72→4
+    │ P:072 OB:014 WG:002            │}
+    - 
+
+
+debugging these issues:
+- the remove filiteration:
+check legal action and getAction are doing great, nothing seems to be wrong, checking exand_actions_for_valid_balls and filiter_valid :
+exand_actions_for_valid_balls:
+
+filiter_valid: 
+
+issues remain:
+- flex_move when starting with one ball
++ solution ,when jailBreak action kick in , expand the flex_move again
+- super move doesnt kill all in its way  
+new ones:
+- swaping some times doesnt get played, so it doesnt even removed  no effect on the board, but it the only playable card tho
++ fixed : the swap_positon didnt reuturn True ,thus the card didnt got removed
+- flex_move: when the first ball sit at the player base ,then it becomes an obsticle , because the move was not filiterd
++ filiter it :if the ball_1 new Pos is in the player base ,and ball_2 is going to be stuck by the first ball
+
+checking:
+[O] moving byond obstilce into safeCell
+[O] flex_move expansion after jailbreak
+[O] super move hit all 13 cell in front
+fix them ALL! time now :2025-01-10 23:06:27
+
+
+2025-01-14 05:06:38
+starting with the dqn agent
+2025-01-15 03:19:53
+I'm a little busy with my COOP training for college, so my contruiption to this project are getting less and less, but for now the issue is wiith encoding and decoding action entering and exiting the neural network properly, most seems ok but the issue seems to hapen when the self.actions gets encoded in indcies
+
+its a matter of matching the between to subsets
+
+
+
+2025-01-22 09:33:14
+back working on the project , there an issue decoding the agent actions when jailbreaking... taking breakfast break, hope you reading this, or make a good use of it -_-, anoth
+
+- some bugs in the game engine still STAND !!, 
+    - flex move causing safeCell dublicate positions
+    - flex not getting exapanded after jailbreaking mid-round
+
+    defaulting agent.choosen_action to 1 
+
+
+
+2025-01-23 07:08:42
+starting to debug the agent perfoermece
+- loss stays zero till episode 4, then q_values start becoming mostly blue, negitive more and more through the episode progression 
+I added negitive rewards as well
+
+
+2025-01-24 08:54:35
+evaulting the agent desing and trying to adjust it :
+sugguested adjustment's:
+- Exploration-Exploitation Balance
+- network architecture ,buffer size ,batch_size
+    - incressing buffer from 4K to 50K !,said to help observe more diverse action,states
+    - incressing batch size from 32 to 64, suitable for buffer size
+    - bigger network, for handling complex pattern
+- updating target_network by polyak method ,
+
+
+2025-01-24 11:25:01
+the agent was playing aginst smart-random all the time ,that explains why the agent while random dance around 20% win_rate, tested it the smart_random get avg of 65% win_rate vs absoulte ranomd, on 10 test for 100 game a test
+
+after a lot of testing ,tunred out the agent was making invalid moves, without any errors -_-, started hacking the system already LOL, anyway added error that stopes the game for now, the issue when he jailbreaked choosed ball_idx for a ball thats already free
+
+
+
+2025-01-25 12:18:51
+notice a big issue, the agent was choosing an action for 4 steps ,and can't change it, that must be the issue. because step function should need one action, yet it loops for all player hand, whitch requries 4-5 actions 
+
+2025-01-26 10:23:15
+fixed it by seprating the steps so it return rewards and the reqired info every step not every HAND like it was , now testing the model at episodes/game 60 only and showing show goods signs ,the loss started huge and decresd gradually ,now it osillate beteween 0-100, started at 600 and rapidlly decended to 100 at only 10 episodes, I collected the q_values at a sampled step from the episode to show thier values noraml distribution, showing how decicive the model about its q_values ,besides the  entropy
+
+
+2025-01-27 23:20:36
+been traing to find why the agent is not learning the cople passed days. the training takes incredible amount of time, the main training prcoess reached 16K episode, been running for 1 Day and 6 Hours !
+even so, no sgnficant result been reached, I'm tring to find why the agent isn't learning, the things I tried:
+- changning the net arch to RNN, bigger network ,added dropOut to avoid overfitting
+- adjusting hyperParameters: add updaing network by gradually ,editing hyperParameters mid-training manually like Epslion, tau ,batch_size(but not used this one yet)
+incressed the agent memory to 800K 
+- add tiny panlity of 0.01 each play , to encourage play less
+
+notes and obeservations:
+- after last update, bigger network and better reward system the Entropy is not directly linked to epslion like it was, before the entropy decreseed side by side to the epsilion, but now its not quite like that. it meas even the agent is choosing his action he is not as sure about them as before ,but entropy is decreseing at steady rate still at 6 through
+-  
+
+
+2025-01-28 05:03:42
+[Batch Start 165809/1000000] Loss: 214.7715 Batch Reward: 443.9501953125 Epsilon: 0.0100 Win Rates: 54.47% A : 45.51% B  Elapsed : 1 day, 12:05:15
+still no progress !
+
+
+2025-01-28 14:48:19
+- bigger state 220 -> 298 -> 419 (now)
+- started the training over and over, adjusting little issue but now I will give it 72 Hour then consider adjusting it, maybe I got it the first time I just didnt wait enoguh :\
+- the previous one showed some kind of progress, the entropy gradually decresed,while avg rewards for past 100 game where asending on the long run but not steadlly, loss oscliated around ~200-350 but when it incresed the avg got better,most of the time  
+- added burned_players to state making it 421
+
+
+2025-01-29 08:02:52
+I will be reporting the progress of the training till the end of the 72-Hour training
+
+-    [2025-01-29 08:03:52]: 16H gone:56H remain :
+        progress: after changing the tau to 0.05 %5 network updates, the progress of the training gone slower but it seems to be steady, even that the avg rewards are decresing and entropy is incresing,I think its will show some progress after a while and when it does, it will be exponential, becuase ones the q_values set properly the rewards will just incresse no downs
+        [Batch Start 23193/1000000] Loss: 320.0365 Batch Reward:     461.32 Epsilon: 0.0100 Win Rate A:  54.26% Win Rate B:  45.71% Elapsed: 16:59:38
+
+        manually filtered  :Details:71,ball2:0 successes:True offsets:(4, 3)
+-    [2025-01-29 16:54:13] 16H gone : 56 remains
+        progress: found a fatal errors in the reward system,
+        but the 
+
+-    [2025-02-02 02:24:25]: [Batch Start 53191/1026504] Loss:   1.5805 Batch Reward:     119.47 Epsilon: 0.0100 Win Rate A:  53.45% Win Rate B:  46.69% Elapsed: 2 days, 13:11:22
+
+
+2025-02-02 06:39:03 done making a reaonsable PPO agent, now trying to minmize the action_space its now at 2063, ....great I was able to reduce it to 431! 
+issue decodeing with ball_indices while its in one indcies
+- after reducing the action space to only fit player one id 0, I got issue when player one wins and plays as his parenter ,then tring to find an action with the ball incidies trys to map the action to the map in which only ball
